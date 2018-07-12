@@ -1,0 +1,27 @@
+opam-version: "2.0"
+name: "jupiteri"
+version: "0.1"
+maintainer: "Quentin Heath <12143333+qheath@users.noreply.github.com>"
+authors: "Quentin Heath <12143333+qheath@users.noreply.github.com>"
+license: "GPL-3"
+#homepage: ""
+#dev-repo: ""
+#bug-reports: ""
+build: [
+  ["jbuilder" "build" "-p" name "-j" jobs "@install"]
+  ["jbuilder" "build" "-p" name "-j" jobs "@runtest"] {with-test}
+  ["jbuilder" "build" "-p" name "-j" jobs "@doc"] {with-doc}
+]
+
+depends: [
+  "jbuilder" {build}
+  "getarg" {with-test}
+  "odoc" {with-doc}
+]
+synopsis: "IO utils"
+description: """
+Various input/output utilities."""
+#url {
+#  src: ""
+#  checksum: ""
+#}
