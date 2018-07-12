@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(library
+ ((name jupiterI)
+  (public_name jupiteri)
+  (synopsis "IO utils")
+  (modules (Pos Output Input))
+  (libraries (lambda-term))
+  (flags (:standard -warn-error A))))
