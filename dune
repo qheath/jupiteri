@@ -1,0 +1,15 @@
+(env
+ (dev
+  (flags (:standard -w +a -warn-error +a)))
+ (release
+  (flags (:standard -w +a))))
+
+(alias
+ (name    runtest)
+ (deps    (:test src/test.bc))
+ (action
+  (progn
+   (run ${test} -vv)
+   (run ${test} -v)
+   (run ${test})
+   (run ${test} -q))))

@@ -19,10 +19,10 @@
 let parse_args () =
   let longopts = GetArg.[
     ('v',"verbose"," increase verbosity"),
-    GetArg.Lone JupiterI.Output.Verbosity.moreTalk ;
+    Lone JupiterI.Output.Verbosity.moreTalk ;
 
     ('q',"quiet"," decrease verbosity"),
-    GetArg.Lone JupiterI.Output.Verbosity.lessTalk ;
+    Lone JupiterI.Output.Verbosity.lessTalk ;
   ] and usage =
     Printf.sprintf
       "usage: %s [<options>]"
