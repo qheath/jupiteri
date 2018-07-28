@@ -53,11 +53,13 @@ end = struct
   let to_256 (r,g,b) =
     r*51,g*51,b*51
 
+  (*
   let of_256 (r,g,b) =
     (r+25)/51,(g+25)/51,(b+25)/51
 
   let to_index (r,g,b) =
     ((r * 6 + g) * 6 + b) + 16
+   *)
 
   let to_color (r,g,b) =
     let r,g,b = to_256 (r,g,b) in
@@ -68,37 +70,41 @@ module Level : sig
   type t = Error | Warning | Debug
 
   val of_tag : string -> t option
+  (*
   val to_tag : t -> string
+   *)
   val to_verbosity : t -> int
+  (*
   val to_prefix : t -> string
+   *)
   val to_color_cube : t -> ColorCube.t
   val pp : Format.formatter -> t -> unit
 end = struct
   type t = Error | Warning | Debug
 
   let of_tag = function
-    | "error" -> Some Error
+    | "error" -> Some (Error : t)
     | "warning" -> Some Warning
     | "debug" -> Some Debug
     | _ -> None
 
   let to_tag = function
-    | Error -> "error"
+    | (Error : t) -> "error"
     | Warning -> "warning"
     | Debug -> "debug"
 
   let to_verbosity = function
-    | Error -> 0
+    | (Error : t) -> 0
     | Warning -> 1
     | Debug -> 2
 
   let to_prefix = function
-    | Error -> "[Error]"
+    | (Error : t) -> "[Error]"
     | Warning -> "[Warning]"
     | Debug -> "[Debug]"
 
   let to_color_cube = function
-    | Error -> 5,1,1
+    | (Error : t) -> 5,1,1
     | Warning -> 4,3,0
     | Debug -> 4,1,5
 
