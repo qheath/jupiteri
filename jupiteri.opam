@@ -1,20 +1,19 @@
 opam-version: "2.0"
-name: "jupiteri"
-version: "0.1"
+version: "0.2"
 maintainer: "Quentin Heath <12143333+qheath@users.noreply.github.com>"
 authors: "Quentin Heath <12143333+qheath@users.noreply.github.com>"
+homepage: "https://github.com/qheath/jupiteri"
+bug-reports: "https://github.com/qheath/jupiteri/issues"
+dev-repo: "git://github.com/qheath/jupiteri.git"
 license: "GPL-3"
-#homepage: ""
-#dev-repo: ""
-#bug-reports: ""
 build: [
-  ["jbuilder" "build" "-p" name "-j" jobs "@install"]
-  ["jbuilder" "build" "-p" name "-j" jobs "@runtest"] {with-test}
-  ["jbuilder" "build" "-p" name "-j" jobs "@doc"] {with-doc}
+  ["dune" "build" "-p" name "-j" jobs "@install"]
+  ["dune" "build" "-p" name "-j" jobs "@runtest"] {with-test}
+  ["dune" "build" "-p" name "-j" jobs "@doc"] {with-doc}
 ]
 
 depends: [
-  "jbuilder" {build}
+  "dune" {build}
   "getarg" {with-test}
   "odoc" {with-doc}
 ]

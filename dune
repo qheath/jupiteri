@@ -9,7 +9,7 @@
  (deps    (:test src/test.bc))
  (action
   (progn
-   (run ${test} -vv)
-   (run ${test} -v)
-   (run ${test})
-   (run ${test} -q))))
+   (run %{test} -vv)
+   (run %{test} -v)
+   (run %{test})
+   (run %{test} -q))))
