@@ -71,7 +71,7 @@ module Level : sig
 
   val of_tag : string -> t option
   (*
-  val to_tag : t -> string
+  val to_stag : t -> Format.stag
    *)
   val to_verbosity : t -> int
   (*
@@ -88,10 +88,13 @@ end = struct
     | "debug" -> Some Debug
     | _ -> None
 
-  let to_tag = function
-    | (Error : t) -> "error"
-    | Warning -> "warning"
-    | Debug -> "debug"
+  let to_stag level =
+    let tag = match level with
+      | (Error : t) -> "error"
+      | Warning -> "warning"
+      | Debug -> "debug"
+    in
+    Format.String_tag tag
 
   let to_verbosity = function
     | (Error : t) -> 0
@@ -109,10 +112,10 @@ end = struct
     | Debug -> 4,1,5
 
   let pp fmt level =
-    Format.pp_open_tag fmt (to_tag level) ;
+    Format.pp_open_stag fmt (to_stag level) ;
     Format.pp_print_string fmt (to_prefix level) ;
     Format.pp_print_space fmt () ;
-    Format.pp_close_tag fmt ()
+    Format.pp_close_stag fmt ()
 end
 
 (* Prefixed and styled output *)

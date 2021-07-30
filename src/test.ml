@@ -16,24 +16,9 @@
 (* along with this program.  If not, see <http://www.gnu.org/licenses/>.    *)
 (****************************************************************************)
 
-let parse_args () =
-  let longopts = GetArg.[
-    ('v',"verbose"," increase verbosity"),
-    Lone JupiterI.Output.Verbosity.moreTalk ;
-
-    ('q',"quiet"," decrease verbosity"),
-    Lone JupiterI.Output.Verbosity.lessTalk ;
-  ] and usage =
-    Printf.sprintf
-      "usage: %s [<options>]"
-      Sys.argv.(0)
-  in
-
-  GetArg.parse longopts ignore usage ;
-  ()
-
-let () =
-  let () = parse_args () in
+let main verbosity unverbosity =
+  List.iter (fun _ -> JupiterI.Output.Verbosity.moreTalk ()) verbosity ;
+  List.iter (fun _ -> JupiterI.Output.Verbosity.lessTalk ()) unverbosity ;
   JupiterI.Output.eprintf "error" ;
   JupiterI.Output.wprintf "warning" ;
   JupiterI.Output.dprintf "debug" ;
@@ -47,3 +32,16 @@ let () =
     | None -> ()
   end ;
   ()
+
+let () =
+  let verbosity =
+    let doc = "increase verbosity" in
+    Cmdliner.Arg.(value & flag_all & info ["v";"verbose"] ~doc)
+  and unverbosity =
+    let doc = "decrease verbosity" in
+    Cmdliner.Arg.(value & flag_all & info ["q";"quiet"] ~doc)
+  in
+  let term =
+    Cmdliner.Term.(const main $ verbosity $ unverbosity)
+  in
+  Cmdliner.Term.(exit @@ eval (term,info "jupiteri"))
