@@ -44,4 +44,4 @@ let () =
   let term =
     Cmdliner.Term.(const main $ verbosity $ unverbosity)
   in
-  Cmdliner.Term.(exit @@ eval (term,info "jupiteri"))
+  Stdlib.exit @@ Cmdliner.Cmd.(eval (v (info "jupiteri") term))
