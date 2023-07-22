@@ -17,131 +17,116 @@
 (* 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.              *)
 (****************************************************************************)
 
-(* Verbosity *)
-
-module Verbosity : sig
-  val moreTalk : unit -> unit
-  val lessTalk : unit -> unit
-  val iprintf : int -> LTerm_text.t -> unit
-end = struct
-  let verbosity = ref 0
-
-  let moreTalk () = incr verbosity
-
-  let lessTalk () = decr verbosity
-
-  (* Print text, provided the verbosity level is high enough. *)
-  let iprintf min_verbosity lterm_text =
-    if !verbosity>=min_verbosity
-    then Lwt_main.run @@ LTerm.eprintls lterm_text
-end
+let src = Logs.Src.create "jupiteri.output" ~doc:"wrapper around Logs"
+(*
+module Log = (val Logs.src_log src : Logs.LOG)
+ *)
 
 (* Prefix and style *)
 
-module ColorCube : sig
-  type t = int * int * int
-
-  (*
-  val to_256 : t -> t
-  val of_256 : t -> t
-  val to_index : t -> int
-   *)
-  val to_color : t -> LTerm_style.color
-end = struct
-  type t = int * int * int
-
-  let to_256 (r,g,b) =
-    r*51,g*51,b*51
-
-  (*
-  let of_256 (r,g,b) =
-    (r+25)/51,(g+25)/51,(b+25)/51
-
-  let to_index (r,g,b) =
-    ((r * 6 + g) * 6 + b) + 16
-   *)
-
-  let to_color (r,g,b) =
-    let r,g,b = to_256 (r,g,b) in
-    LTerm_style.rgb r g b
-end
-
 module Level : sig
-  type t = Error | Warning | Debug
-
-  val of_tag : string -> t option
-  (*
-  val to_stag : t -> Format.stag
-   *)
-  val to_verbosity : t -> int
-  (*
-  val to_prefix : t -> string
-   *)
-  val to_color_cube : t -> ColorCube.t
-  val pp : Format.formatter -> t -> unit
+  val pp : Format.formatter -> Logs.level -> unit
+  val to_style : Logs.level -> Fmt.style
 end = struct
-  type t = Error | Warning | Debug
-
-  let of_tag = function
-    | "error" -> Some (Error : t)
-    | "warning" -> Some Warning
-    | "debug" -> Some Debug
-    | _ -> None
-
-  let to_stag level =
-    let tag = match level with
-      | (Error : t) -> "error"
-      | Warning -> "warning"
-      | Debug -> "debug"
-    in
-    Format.String_tag tag
-
-  let to_verbosity = function
-    | (Error : t) -> 0
-    | Warning -> 1
-    | Debug -> 2
-
-  let to_prefix = function
-    | (Error : t) -> "[Error]"
-    | Warning -> "[Warning]"
-    | Debug -> "[Debug]"
-
-  let to_color_cube = function
-    | (Error : t) -> 5,1,1
-    | Warning -> 4,3,0
-    | Debug -> 4,1,5
+  let to_string = function
+    | Logs.App ->
+      begin match Array.length Sys.argv with
+        | 0 -> Filename.basename Sys.executable_name
+        | _ -> Filename.basename Sys.argv.(0)
+      end
+    | Logs.Error -> "ERROR"
+    | Logs.Warning -> "WARNING"
+    | Logs.Info -> "INFO"
+    | Logs.Debug -> "DEBUG"
 
   let pp fmt level =
-    Format.pp_open_stag fmt (to_stag level) ;
-    Format.pp_print_string fmt (to_prefix level) ;
-    Format.pp_print_space fmt () ;
-    Format.pp_close_stag fmt ()
+    Format.pp_print_string fmt (to_string level)
+
+  let to_style = function
+    | Logs.App -> `Blue
+    | Logs.Error -> `Red
+    | Logs.Warning -> `Yellow
+    | Logs.Info -> `Green
+    | Logs.Debug -> `Magenta
 end
 
-(* Prefixed and styled output *)
+module Header : sig
+  val pp :
+    Logs.level ->
+    (Format.formatter -> 'a -> unit) ->
+    Format.formatter -> 'a -> unit
+end = struct
+  let pp level pp_tag fmt tag =
+    let style = Level.to_style level in
+    Fmt.pf fmt "[%a]" Fmt.(styled style pp_tag) tag
+end
 
-let read_color tag =
-  match Level.of_tag tag with
-    | Some level ->
-        let fg = level |> Level.to_color_cube |> ColorCube.to_color in
-        LTerm_style.{ none with foreground = Some fg ; bold = Some false }
-    | None -> LTerm_style.none
+(* Logging *)
 
-let kstyprintf ~level k f =
-  LTerm_text.kstyprintf ~read_color k
-    ("@[<hov 2>%a@," ^^ f ^^ "@]")
-    Level.pp level
+let setup style_renderer level =
+  Fmt_tty.setup_std_outputs ?style_renderer () ;
+  Logs.Src.set_level src level ;
 
-(* Wrappers *)
+  let pp_header fmt (level,header) =
+    let pp_h pp_tag =
+      Header.pp level pp_tag
+    in
+    match header with
+    | None -> pp_h Level.pp fmt level
+    | Some header -> pp_h Fmt.string fmt header
+  in
+  let pp_pos fmt = function
+    | None -> ()
+    | Some pos ->
+      let pp = Logs.Tag.printer Pos.tag_def in
+      Format.fprintf fmt "@ %a:@ wrong input:" pp pos
+  in
 
-let level_printf ~level f =
-  kstyprintf ~level (Verbosity.iprintf @@ Level.to_verbosity level) f
+  let lwt_reporter =
+    let buf_fmt ~like =
+      let b = Buffer.create 512 in
+      Fmt.with_buffer ~like b,
+      fun () -> let m = Buffer.contents b in Buffer.reset b; m
+    in
+    let app, app_flush = buf_fmt ~like:Fmt.stdout in
+    let dst, dst_flush = buf_fmt ~like:Fmt.stderr in
 
-let eprintf f =
-  level_printf ~level:Level.Error f
+    let report _src level ~over k msgf =
+      let fmt = if level = Logs.App then app else dst in
+      let k _ =
+        let write () = match level with
+          | Logs.App -> Lwt_io.write Lwt_io.stdout (app_flush ())
+          | _ -> Lwt_io.write Lwt_io.stderr (dst_flush ())
+        in
+        let unblock () = over (); Lwt.return_unit in
+        Lwt.finalize write unblock |> Lwt.ignore_result;
+        k ()
+      in
+      let format_with_prefix ?header ?tags f =
+        let pos = match tags with
+          | None -> None
+          | Some tags -> Logs.Tag.find Pos.tag_def tags
+        in
+        Format.kfprintf k fmt ("@[<hov 2>%a%a@ @[" ^^ f ^^ "@]@]@.")
+          pp_header (level,header)
+          pp_pos pos
+      in
+      msgf format_with_prefix
+    in
+    { Logs.report }
+  in
 
-let wprintf f =
-  level_printf ~level:Level.Warning f
+  Logs.set_reporter lwt_reporter
 
-let dprintf f =
-  level_printf ~level:Level.Debug f
+let setup_term =
+  Cmdliner.Term.(
+    const setup $
+    Fmt_cli.style_renderer () $
+    Logs_cli.level ())
+
+(* Print text, provided the verbosity level is high enough. *)
+let app   f = Logs_lwt.app   ~src f
+let err   f = Logs_lwt.err   ~src f
+let warn  f = Logs_lwt.warn  ~src f
+let info  f = Logs_lwt.info  ~src f
+let debug f = Logs_lwt.debug ~src f

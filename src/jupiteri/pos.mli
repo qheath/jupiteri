@@ -39,3 +39,6 @@ val to_offsets : t -> int * int
 
 (** Position information pretty-printing. *)
 val pp : Format.formatter -> t -> unit
+
+(** Logging tag definition *)
+val tag_def : t Logs.Tag.def

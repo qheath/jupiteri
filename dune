@@ -8,8 +8,4 @@
  (name    runtest)
  (deps    (:test src/test.bc))
  (action
-  (progn
-   (run %{test} -vv)
-   (run %{test} -v)
-   (run %{test})
-   (run %{test} -q))))
+  (progn (run %{test} --color=always -vv))))

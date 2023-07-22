@@ -3,4 +3,4 @@
  (public_name jupiteri)
  (synopsis "IO utils")
  (modules ("Pos" "Output" "Input"))
- (libraries lambda-term))
+ (libraries lwt lwt.unix logs logs.fmt logs.lwt logs.cli fmt.cli fmt.tty cmdliner))

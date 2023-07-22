@@ -22,9 +22,10 @@
 let apply_on_lexbuf f lexbuf =
   try Some (f lexbuf)
   with e ->
-    Output.eprintf "%a: wrong input:@ %s."
-      Pos.pp (Pos.of_lexbuf lexbuf ())
-      (Printexc.to_string e) ;
+    let tags =
+      Logs.Tag.(empty |> add Pos.tag_def (Pos.of_lexbuf lexbuf ()))
+    in
+    Lwt_main.run @@ Output.err (fun m -> m ~tags "%s." (Printexc.to_string e)) ;
     None
 
 let apply_on_string f ?(fname="") str =

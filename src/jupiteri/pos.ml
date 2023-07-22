@@ -57,3 +57,6 @@ let pp fmt (start,curr) =
     Format.fprintf fmt "At %s" (pos_to_string (start,curr))
   else
     Format.fprintf fmt "In file %S, at %s" name (pos_to_string (start,curr))
+
+let tag_def =
+  Logs.Tag.def "position" ~doc:"position within a file" pp

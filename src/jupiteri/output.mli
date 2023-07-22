@@ -17,30 +17,14 @@
 (* 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.              *)
 (****************************************************************************)
 
-(* {6 Verbosity} *)
+(* {6 Logging} *)
 
-module Verbosity : sig
+(* Setup logging facilities, using [--color], [-v], [--verbose],
+ * and [-q] *)
+val setup_term : unit Cmdliner.Term.t
 
-  (** Increase the verbosity level. *)
-  val moreTalk : unit -> unit
-
-  (** Decrease the verbosity level. *)
-  val lessTalk : unit -> unit
-end
-
-(* {6 Prefix and style} *)
-
-module Level : sig
-  type t = Error | Warning | Debug
-end
-
-(* {6 Prefixed and styled output} *)
-
-val kstyprintf : level:Level.t -> (LTerm_text.t -> 'a) ->
-  ('b, Format.formatter, unit, 'a) format4 -> 'b
-
-(* {6 Wrappers} *)
-
-val eprintf : ('a, Format.formatter, unit, unit) format4 -> 'a
-val wprintf : ('a, Format.formatter, unit, unit) format4 -> 'a
-val dprintf : ('a, Format.formatter, unit, unit) format4 -> 'a
+val app   : ('a,unit Lwt.t) Logs.msgf -> unit Lwt.t
+val err   : ('a,unit Lwt.t) Logs.msgf -> unit Lwt.t
+val warn  : ('a,unit Lwt.t) Logs.msgf -> unit Lwt.t
+val info  : ('a,unit Lwt.t) Logs.msgf -> unit Lwt.t
+val debug : ('a,unit Lwt.t) Logs.msgf -> unit Lwt.t

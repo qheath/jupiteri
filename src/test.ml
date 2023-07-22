@@ -16,32 +16,31 @@
 (* along with this program.  If not, see <http://www.gnu.org/licenses/>.    *)
 (****************************************************************************)
 
-let main verbosity unverbosity =
-  List.iter (fun _ -> JupiterI.Output.Verbosity.moreTalk ()) verbosity ;
-  List.iter (fun _ -> JupiterI.Output.Verbosity.lessTalk ()) unverbosity ;
-  JupiterI.Output.eprintf "error" ;
-  JupiterI.Output.wprintf "warning" ;
-  JupiterI.Output.dprintf "debug" ;
-  let f lexbuf =
-    JupiterI.Output.wprintf "%a"
-      JupiterI.Pos.pp (JupiterI.Pos.of_lexbuf lexbuf ()) ;
-    assert false
+open Lwt.Syntax
+
+let main () =
+  let aux =
+    let* () = JupiterI.Output.app (fun m -> m "this is a message") in
+    let* () = JupiterI.Output.err (fun m -> m "this is an error") in
+    let* () = JupiterI.Output.warn (fun m -> m "this is an warning") in
+    let* () = JupiterI.Output.info (fun m -> m "this is information") in
+    let* () = JupiterI.Output.debug (fun m -> m "this is debugging") in
+    begin match JupiterI.Input.apply_on_string (fun _ -> assert false) "" with
+      | Some _ -> ()
+      | None -> ()
+    end ;
+    let code =
+      (*
+      if Logs.err_count () > 0 then Cmdliner.Cmd.Exit.some_error else
+       *)
+      Cmdliner.Cmd.Exit.ok
+    in
+    Lwt.return code
   in
-  begin match JupiterI.Input.apply_on_string f "" with
-    | Some _ -> ()
-    | None -> ()
-  end ;
-  ()
+  Lwt_main.run aux
 
 let () =
-  let verbosity =
-    let doc = "increase verbosity" in
-    Cmdliner.Arg.(value & flag_all & info ["v";"verbose"] ~doc)
-  and unverbosity =
-    let doc = "decrease verbosity" in
-    Cmdliner.Arg.(value & flag_all & info ["q";"quiet"] ~doc)
+  let main_term =
+    Cmdliner.Term.(const main $ JupiterI.Output.setup_term)
   in
-  let term =
-    Cmdliner.Term.(const main $ verbosity $ unverbosity)
-  in
-  Stdlib.exit @@ Cmdliner.Cmd.(eval (v (info "jupiteri") term))
+  Stdlib.exit @@ Cmdliner.Cmd.(eval' (v (info "jupiteri") main_term))
